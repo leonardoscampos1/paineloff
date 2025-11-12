@@ -90,8 +90,9 @@ Por favor, providenciem o cadastro.
             smtp.send_message(msg)
         return True
     except Exception as e:
-        print(f"Erro ao enviar e-mail: {e}")
+        st.error(f"Erro ao enviar e-mail: {e}")
         return False
+
 
 # ==========================
 # 🧠 Função responder GPT
@@ -235,4 +236,5 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
 
