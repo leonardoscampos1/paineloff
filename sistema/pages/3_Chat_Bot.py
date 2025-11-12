@@ -40,26 +40,29 @@ def extrair_cnpj(texto):
 def normalizar_cnpj(cnpj):
     return re.sub(r'\D', '', str(cnpj))
 
+import requests
+from io import BytesIO
+
 def consulta_cliente(cnpj):
     try:
-        # Caminho do banco local SQLite
-        ARQUIVO_SQLITE = r"C:\Hbox\Banco de Dados\banco_local.db"
+        # 📥 Baixa o banco SQLite do HBox em memória
+        url = "https://hbox.houseti.com.br/s/D2nXxuYkkeuV6r3/download"
+        r = requests.get(url)
+        r.raise_for_status()
+        mem_db = BytesIO(r.content)
 
-        # Conexão SQLite
-        import sqlite3
-        conn = sqlite3.connect(ARQUIVO_SQLITE)
+        # Conecta ao banco em memória
+        conn = sqlite3.connect(mem_db)
 
-        # Leitura da tabela de clientes
+        # Lê a tabela de clientes
         tabela_cliente = pd.read_sql("SELECT * FROM PCCLIENT", conn)
+        tabela_cliente.columns = tabela_cliente.columns.str.upper()  # maiúsculas
 
-        # ✅ Converte nomes de colunas para maiúsculas
-        tabela_cliente.columns = tabela_cliente.columns.str.upper()
-
-        # Normaliza o CNPJ informado
+        # Normaliza CNPJs
         cnpj_norm = normalizar_cnpj(cnpj)
-
-        # Normaliza coluna CGCENT e compara
         tabela_cliente["CGCENT"] = tabela_cliente["CGCENT"].apply(normalizar_cnpj)
+
+        # Consulta
         resultado = tabela_cliente[tabela_cliente["CGCENT"] == cnpj_norm]
 
         if not resultado.empty:
@@ -70,6 +73,7 @@ def consulta_cliente(cnpj):
 
     except Exception as e:
         return f"❌ Erro ao consultar o banco: {e}"
+
 
 
 def enviar_email_cadastro(cnpj, solicitante, destino="leonardo.campos@rigarr.com.br"):
@@ -234,6 +238,7 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
 
 
 
