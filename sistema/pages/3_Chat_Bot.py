@@ -37,7 +37,7 @@ def normalizar_cnpj(cnpj):
 
 # ==========================
 # 🔹 Carregar tabela de clientes na memória (uma vez por sessão)
-# ==========================
+
 if "tabela_cliente" not in st.session_state:
     try:
         conn = sqlite3.connect(ARQUIVO_SQLITE)
@@ -47,6 +47,8 @@ if "tabela_cliente" not in st.session_state:
         st.session_state.tabela_cliente = tabela
     except Exception as e:
         st.error(f"❌ Erro ao carregar a tabela de clientes: {e}")
+        st.stop()  # interrompe a execução, pois a tabela é essencial
+
 
 # ==========================
 # 🔹 Consulta cliente
@@ -228,3 +230,4 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
