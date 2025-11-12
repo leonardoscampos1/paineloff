@@ -70,25 +70,33 @@ def consulta_cliente(cnpj):
         return f"❌ Erro ao consultar o banco: {e}"
 
 def enviar_email_cadastro(cnpj, solicitante, destino="leonardo.campos@rigarr.com.br"):
-    """Envia e-mail solicitando cadastro do CNPJ"""
+    """Envia e-mail solicitando cadastro de CNPJ"""
     try:
+        # 🧼 Remove quebras de linha e espaços extras
+        cnpj_limpo = str(cnpj).strip().replace("\n", "").replace("\r", "")
+        solicitante_limpo = str(solicitante).strip().replace("\n", "").replace("\r", "")
+        destino_limpo = str(destino).strip().replace("\n", "").replace("\r", "")
+
         msg = EmailMessage()
-        msg['Subject'] = f"Solicitação de cadastro de CNPJ: {cnpj}"
-        msg['From'] = "leonardo.campos@rigarr.com.br"
-        msg['To'] = destino
+        msg["Subject"] = f"Solicitação de cadastro de CNPJ: {cnpj_limpo}"
+        msg["From"] = "leonardo.campos@rigarr.com.br"
+        msg["To"] = destino_limpo
         msg.set_content(f"""
 Olá, equipe de cadastro!
 
-O CNPJ {cnpj} não foi encontrado na base de clientes.
-Solicitante: {solicitante}
+O CNPJ {cnpj_limpo} não foi encontrado na base de clientes.
+Solicitante: {solicitante_limpo}
 
 Por favor, providenciem o cadastro.
         """)
 
-        with smtplib.SMTP_SSL("smtp.emailzimbraonline.com", 465) as smtp:
+        # 🔐 Usa STARTTLS (porta 587)
+        with smtplib.SMTP("smtp.emailzimbraonline.com", 587) as smtp:
+            smtp.starttls()
             smtp.login("leonardo.campos@rigarr.com.br", "Br@sil34@")
             smtp.send_message(msg)
         return True
+
     except Exception as e:
         st.error(f"Erro ao enviar e-mail: {e}")
         return False
@@ -236,5 +244,6 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
 
 
