@@ -4,7 +4,7 @@ import re
 import sqlite3
 from dotenv import load_dotenv
 import random
-from langchain_chroma.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
@@ -233,3 +233,4 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
