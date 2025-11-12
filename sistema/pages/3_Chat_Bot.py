@@ -15,7 +15,7 @@ from email.message import EmailMessage
 # ==========================
 # 🗄️ Caminho do banco SQLite
 # ==========================
-ARQUIVO_SQLITE = r"C:\Hbox\Banco de Dados\banco_local.db"
+ARQUIVO_SQLITE = "https://hbox.houseti.com.br/s/D2nXxuYkkeuV6r3/download"
 CAMINHO_DB = r"C:\Users\LeonardoCampos\HBox\Off Trade\sistema\db"
 
 # ==========================
@@ -234,5 +234,6 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
 
 
