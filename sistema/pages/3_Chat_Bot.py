@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import re
 import sqlite3
-import requests
-from io import BytesIO
 from dotenv import load_dotenv
 import random
 from langchain_community.vectorstores import Chroma
@@ -13,12 +11,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
 import smtplib
 from email.message import EmailMessage
-import tempfile
 
 # ==========================
 # 🗄️ Caminhos e Configurações
 # ==========================
-URL_SQLITE = "https://hbox.houseti.com.br/s/D2nXxuYkkeuV6r3/download"
+ARQUIVO_SQLITE = r"C:\Hbox\Banco de Dados\banco_local.db"  # Banco já baixado
 CAMINHO_DB = r"C:\Users\LeonardoCampos\HBox\Off Trade\sistema\db"
 
 st.set_page_config(page_title="ChatBot Inteligente", page_icon="🤖", layout="wide")
@@ -38,44 +35,41 @@ def extrair_cnpj(texto):
 def normalizar_cnpj(cnpj):
     return re.sub(r'\D', '', str(cnpj))
 
-def consulta_cliente(cnpj):
-    """Consulta o cliente no banco hospedado no link HBox"""
+# ==========================
+# 🔹 Carregar tabela de clientes na memória (uma vez por sessão)
+# ==========================
+if "tabela_cliente" not in st.session_state:
     try:
-        # 🔹 Faz o download do banco temporariamente
-        r = requests.get(URL_SQLITE)
-        r.raise_for_status()
-
-        # Cria arquivo temporário com o conteúdo
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
-            tmp.write(r.content)
-            caminho_temp = tmp.name
-
-        # Conecta ao banco temporário
-        conn = sqlite3.connect(caminho_temp)
-        tabela_cliente = pd.read_sql("SELECT * FROM PCCLIENT", conn)
+        conn = sqlite3.connect(ARQUIVO_SQLITE)
+        tabela = pd.read_sql("SELECT * FROM PCCLIENT", conn)
         conn.close()
+        tabela.columns = tabela.columns.str.upper()
+        st.session_state.tabela_cliente = tabela
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar a tabela de clientes: {e}")
 
-        # Nomes de colunas em maiúsculo
-        tabela_cliente.columns = tabela_cliente.columns.str.upper()
-
-        # Normaliza o CNPJ informado
+# ==========================
+# 🔹 Consulta cliente
+# ==========================
+def consulta_cliente(cnpj):
+    try:
+        tabela = st.session_state.tabela_cliente
         cnpj_norm = normalizar_cnpj(cnpj)
-
-        # Normaliza coluna CGCENT e compara
-        tabela_cliente["CGCENT"] = tabela_cliente["CGCENT"].apply(normalizar_cnpj)
-        resultado = tabela_cliente[tabela_cliente["CGCENT"] == cnpj_norm]
+        tabela["CGCENT"] = tabela["CGCENT"].apply(normalizar_cnpj)
+        resultado = tabela[tabela["CGCENT"] == cnpj_norm]
 
         if not resultado.empty:
             codcli, cliente, cgc = resultado.iloc[0][["CODCLI", "CLIENTE", "CGCENT"]]
             return f"✅ O CNPJ {cgc} está cadastrado com o código {codcli} ({cliente})."
         else:
             return f"🚫 Não encontramos o CNPJ {cnpj} na base de clientes."
-
     except Exception as e:
         return f"❌ Erro ao consultar o banco: {e}"
 
+# ==========================
+# 🔹 Envio de e-mail
+# ==========================
 def enviar_email_cadastro(cnpj, solicitante, destino="leonardo.campos@rigarr.com.br"):
-    """Envia e-mail solicitando cadastro do CNPJ"""
     try:
         msg = EmailMessage()
         msg['Subject'] = f"Solicitação de cadastro de CNPJ: {cnpj}"
@@ -128,14 +122,12 @@ def responder(pergunta, historico_chat, limite_historico=6):
     if pergunta_lower in saudacoes:
         return random.choice(respostas_saudacao)
 
-    # Histórico
     ultimos_turnos = historico_chat[-limite_historico:]
     historico_formatado = "\n".join([
         f"Usuário: {m.content}" if isinstance(m, HumanMessage) else f"Bot: {m.content}"
         for m in ultimos_turnos
     ])
 
-    # Base Chroma
     funcao_embedding = OpenAIEmbeddings()
     db = Chroma(persist_directory=CAMINHO_DB, embedding_function=funcao_embedding)
     resultados = db.similarity_search_with_relevance_scores(pergunta, k=3)
