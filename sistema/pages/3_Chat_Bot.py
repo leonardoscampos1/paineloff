@@ -4,20 +4,22 @@ import re
 import sqlite3
 from dotenv import load_dotenv
 import random
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.chat_models import ChatOpenAI
+from langchain_chroma.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
 import smtplib
 from email.message import EmailMessage
 
 # ==========================
-# 🗄️ Caminhos e Configurações
+# 🗄️ Caminho do banco SQLite
 # ==========================
-ARQUIVO_SQLITE = r"C:\Hbox\Banco de Dados\banco_local.db"  # Banco já baixado
+ARQUIVO_SQLITE = r"C:\Hbox\Banco de Dados\banco_local.db"
 CAMINHO_DB = r"C:\Users\LeonardoCampos\HBox\Off Trade\sistema\db"
 
+# ==========================
+# 🖥️ Configurações Streamlit
+# ==========================
 st.set_page_config(page_title="ChatBot Inteligente", page_icon="🤖", layout="wide")
 st.title("🤖 ChatBot Inteligente com Memória")
 st.write("Converse com o assistente com base na sua base de conhecimento Chroma e banco de clientes.")
@@ -30,48 +32,47 @@ load_dotenv()
 def extrair_cnpj(texto):
     padrao = r'\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}'
     resultado = re.search(padrao, texto)
-    return resultado.group() if resultado else None
+    if resultado:
+        return resultado.group()
+    return None
 
 def normalizar_cnpj(cnpj):
     return re.sub(r'\D', '', str(cnpj))
 
-# ==========================
-# 🔹 Carregar tabela de clientes na memória (uma vez por sessão)
-
-if "tabela_cliente" not in st.session_state:
-    try:
-        conn = sqlite3.connect(ARQUIVO_SQLITE)
-        tabela = pd.read_sql("SELECT * FROM PCCLIENT", conn)
-        conn.close()
-        tabela.columns = tabela.columns.str.upper()
-        st.session_state.tabela_cliente = tabela
-    except Exception as e:
-        st.error(f"❌ Erro ao carregar a tabela de clientes: {e}")
-        st.stop()  # interrompe a execução, pois a tabela é essencial
-
-
-# ==========================
-# 🔹 Consulta cliente
-# ==========================
 def consulta_cliente(cnpj):
     try:
-        tabela = st.session_state.tabela_cliente
+        # Caminho do banco local SQLite
+        ARQUIVO_SQLITE = r"C:\Hbox\Banco de Dados\banco_local.db"
+
+        # Conexão SQLite
+        import sqlite3
+        conn = sqlite3.connect(ARQUIVO_SQLITE)
+
+        # Leitura da tabela de clientes
+        tabela_cliente = pd.read_sql("SELECT * FROM PCCLIENT", conn)
+
+        # ✅ Converte nomes de colunas para maiúsculas
+        tabela_cliente.columns = tabela_cliente.columns.str.upper()
+
+        # Normaliza o CNPJ informado
         cnpj_norm = normalizar_cnpj(cnpj)
-        tabela["CGCENT"] = tabela["CGCENT"].apply(normalizar_cnpj)
-        resultado = tabela[tabela["CGCENT"] == cnpj_norm]
+
+        # Normaliza coluna CGCENT e compara
+        tabela_cliente["CGCENT"] = tabela_cliente["CGCENT"].apply(normalizar_cnpj)
+        resultado = tabela_cliente[tabela_cliente["CGCENT"] == cnpj_norm]
 
         if not resultado.empty:
             codcli, cliente, cgc = resultado.iloc[0][["CODCLI", "CLIENTE", "CGCENT"]]
-            return f"✅ O CNPJ {cgc} está cadastrado com o código {codcli} ({cliente})."
+            return f"Sim, o CNPJ {cgc} está cadastrado com o código {codcli} ({cliente})."
         else:
-            return f"🚫 Não encontramos o CNPJ {cnpj} na base de clientes."
+            return f"Não encontramos o CNPJ {cnpj} na base de clientes."
+
     except Exception as e:
         return f"❌ Erro ao consultar o banco: {e}"
 
-# ==========================
-# 🔹 Envio de e-mail
-# ==========================
+
 def enviar_email_cadastro(cnpj, solicitante, destino="leonardo.campos@rigarr.com.br"):
+    """Envia e-mail solicitando cadastro do CNPJ"""
     try:
         msg = EmailMessage()
         msg['Subject'] = f"Solicitação de cadastro de CNPJ: {cnpj}"
@@ -124,12 +125,14 @@ def responder(pergunta, historico_chat, limite_historico=6):
     if pergunta_lower in saudacoes:
         return random.choice(respostas_saudacao)
 
+    # Histórico
     ultimos_turnos = historico_chat[-limite_historico:]
     historico_formatado = "\n".join([
         f"Usuário: {m.content}" if isinstance(m, HumanMessage) else f"Bot: {m.content}"
         for m in ultimos_turnos
     ])
 
+    # Base Chroma
     funcao_embedding = OpenAIEmbeddings()
     db = Chroma(persist_directory=CAMINHO_DB, embedding_function=funcao_embedding)
     resultados = db.similarity_search_with_relevance_scores(pergunta, k=3)
@@ -230,4 +233,3 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
-
