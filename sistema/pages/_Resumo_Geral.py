@@ -42,7 +42,6 @@ def atualizar_banco_local(URL_SQLITE, SQLITE_LOCAL, ETAG_FILE):
                 f.write(etag_remota)
         else:
             with st.empty():
-                st.info("✅ Banco local já está atualizado.")
                 time.sleep(2)
 
     except Exception as e:
@@ -216,6 +215,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
