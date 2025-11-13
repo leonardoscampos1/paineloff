@@ -44,7 +44,7 @@ def baixar_banco_remoto():
             with open(ETAG_FILE, "w") as f:
                 f.write(etag_remota)
         else:
-            st.success("✅ Banco em cache local atualizado.")
+            st.success("✅ Dados atualizados.")
 
     except Exception as e:
         st.warning(f"⚠️ Falha ao verificar atualização: {e}")
@@ -220,6 +220,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
