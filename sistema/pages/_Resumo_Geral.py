@@ -8,6 +8,8 @@ import os
 from io import BytesIO
 from datetime import date
 from dateutil.relativedelta import relativedelta
+
+st.set_page_config(page_title="Painel OFF TRADE", layout="wide", page_icon="💵")
 st.cache_data.clear()
 
 # =====================================================
@@ -215,6 +217,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
