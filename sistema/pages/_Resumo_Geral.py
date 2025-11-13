@@ -161,8 +161,8 @@ tabela_ano_ant, _, _ = carregar_dados_periodo(data_inicial_ano_ant, data_final_a
 # Ano anterior
 data_inicial_ano_ant = data_inicial - relativedelta(years=1)
 data_final_ano_ant = data_final - relativedelta(years=1)
-tabela_ano_ant, _ = carregar_dados_periodo(data_inicial_ano_ant, data_final_ano_ant)
-tabela_ano_ant, faturamento_ano_ant = calcular_faturamento(tabela_ano_ant, vendedor_selecionado)
+tabela_mes_ant, _, _ = carregar_dados_periodo(data_inicial_ant, data_final_ant)
+tabela_ano_ant, _, _ = carregar_dados_periodo(data_inicial_ano_ant, data_final_ano_ant)
 
 # Variações
 variacao_mes = ((faturamento_atual - faturamento_mes_ant) / faturamento_mes_ant * 100) if faturamento_mes_ant else 0
@@ -220,4 +220,5 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
