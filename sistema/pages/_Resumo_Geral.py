@@ -5,25 +5,41 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 
 # ==========================
-# 🗄 Caminho do banco SQLite
-# ==========================
-ARQUIVO_SQLITE = r"C:\Hbox\Banco de Dados\banco_local.db"
-
-# ==========================
 # 🔄 Função de carregamento
 # ==========================
 @st.cache_data(hash_funcs={date: str})
 def carregar_dados_sqlite(data_inicial, data_final):
+    import requests
+    import tempfile
+    import os
+    from io import BytesIO
+
+    URL_SQLITE = "https://hbox.houseti.com.br/s/D2nXxuYkkeuV6r3/download"
+
     # Garante formato ISO (YYYY-MM-DD)
     data_inicial_str = data_inicial.isoformat() if isinstance(data_inicial, date) else str(data_inicial)
     data_final_str = data_final.isoformat() if isinstance(data_final, date) else str(data_final)
 
-    conn = sqlite3.connect(ARQUIVO_SQLITE, check_same_thread=False)
+    # 🧠 Faz o download do banco temporariamente na memória
+    resposta = requests.get(URL_SQLITE)
+    resposta.raise_for_status()
+    arquivo_bytes = BytesIO(resposta.content)
 
+    # 📂 Cria arquivo temporário manualmente (mantém aberto)
+    temp_path = os.path.join(tempfile.gettempdir(), "banco_temp.db")
+    with open(temp_path, "wb") as f:
+        f.write(arquivo_bytes.getvalue())
+
+    # ✅ Conecta no banco baixado
+    conn = sqlite3.connect(temp_path)
+
+    # ==========================
+    # 🔍 Consulta principal
+    # ==========================
     query_mov = """
         SELECT 
             m.CODFILIAL,
-            DATE(m.DTMOV) AS DTMOV,   -- <<< converte para data pura
+            DATE(m.DTMOV) AS DTMOV,
             m.CODOPER,
             m.CODCLI,
             m.CODUSUR,
@@ -59,12 +75,9 @@ def carregar_dados_sqlite(data_inicial, data_final):
         .merge(tabela_fornec, on='CODFORNEC', how='left')
     )
 
-    # Converte DTMOV em datetime.date para evitar hora
     tabela_mov['DTMOV'] = pd.to_datetime(tabela_mov['DTMOV']).dt.date
 
     return tabela_mov, tabela_cliente, tabela_fornec
-
-
 
 # ==========================
 # 💰 Função para calcular faturamento
