@@ -63,7 +63,7 @@ def carregar_tabelas_completas():
     tabela_mov = pd.read_sql("""
         SELECT 
             m.CODFILIAL, DATE(m.DTMOV) AS DTMOV, m.CODOPER,
-            m.CODCLI, m.CODUSUR, m.CODPROD, p.DESCRICAO, m.NUMPED
+            m.CODCLI, m.CODUSUR, m.CODPROD, p.DESCRICAO, m.NUMPED,
             m.QT, p.CODFORNEC, m.PUNIT, m.DTCANCEL
         FROM PCMOV m
         LEFT JOIN PCPRODUT p ON m.CODPROD = p.CODPROD
@@ -217,6 +217,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
