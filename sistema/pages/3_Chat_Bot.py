@@ -39,42 +39,43 @@ def extrair_cnpj(texto):
 
 def normalizar_cnpj(cnpj):
     return re.sub(r'\D', '', str(cnpj))
-if "tabela_cliente" not in st.session_state:
-    r = requests.get(URL_SQLITE)
-    r.raise_for_status()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
-        tmp.write(r.content)
-        st.session_state.caminho_db_temp = tmp.name
-    conn = sqlite3.connect(st.session_state.caminho_db_temp)
-    st.session_state.tabela_cliente = pd.read_sql("SELECT * FROM PCCLIENT", conn)
-    conn.close()
-
 def consulta_cliente(cnpj):
-    """Consulta o cliente no banco hospedado no link HBox"""
+    """Consulta o cliente na base de dados baixada (com cache local)."""
     try:
-        r = requests.get(URL_SQLITE)
-        r.raise_for_status()
-        
-        # Cria arquivo temporário com o conteúdo do banco
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
-            tmp.write(r.content)
-            caminho_temp = tmp.name
+        # 🧠 Carrega e mantém a tabela em cache
+        if "tabela_cliente" not in st.session_state:
+            st.info("📥 Carregando base de clientes pela primeira vez... (pode levar alguns segundos)")
+            r = requests.get(URL_SQLITE)
+            r.raise_for_status()
 
-        # Conecta ao banco temporário
-        conn = sqlite3.connect(caminho_temp)
-        tabela_cliente = pd.read_sql("SELECT * FROM PCCLIENT", conn)
-        conn.close()
+            # Cria arquivo temporário
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
+                tmp.write(r.content)
+                caminho_temp = tmp.name
+                st.session_state.caminho_db_temp = caminho_temp
 
-        tabela_cliente.columns = tabela_cliente.columns.str.upper()
-        cnpj_norm = normalizar_cnpj(cnpj)
-        tabela_cliente["CGCENT"] = tabela_cliente["CGCENT"].apply(normalizar_cnpj)
+            # Conecta e carrega tabela completa
+            conn = sqlite3.connect(caminho_temp)
+            df = pd.read_sql("SELECT CODCLI, CGCENT, CLIENTE FROM PCCLIENT", conn)
+            conn.close()
 
-        resultado = tabela_cliente[tabela_cliente["CGCENT"] == cnpj_norm]
+            # Normaliza CNPJ e coloca em cache
+            df.columns = df.columns.str.upper()
+            df["CGCENT"] = df["CGCENT"].apply(lambda x: re.sub(r'\D', '', str(x)))
+            st.session_state.tabela_cliente = df
+            st.success("✅ Base de clientes carregada com sucesso!")
+
+        # 🔎 Busca o CNPJ informado
+        df_clientes = st.session_state.tabela_cliente
+        cnpj_norm = re.sub(r'\D', '', str(cnpj))
+        resultado = df_clientes[df_clientes["CGCENT"] == cnpj_norm]
+
         if not resultado.empty:
             codcli, cliente, cgc = resultado.iloc[0][["CODCLI", "CLIENTE", "CGCENT"]]
             return f"✅ O CNPJ {cgc} está cadastrado com o código {codcli} ({cliente})."
         else:
             return f"🚫 Não encontramos o CNPJ {cnpj} na base de clientes."
+
     except Exception as e:
         return f"❌ Erro ao consultar o banco: {e}"
 
@@ -253,6 +254,7 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
 
 
 
