@@ -158,6 +158,7 @@ data_final_ant = data_final - relativedelta(months=1)
 tabela_mes_ant, _, _ = carregar_dados_periodo(data_inicial_ant, data_final_ant)
 tabela_ano_ant, _, _ = carregar_dados_periodo(data_inicial_ano_ant, data_final_ano_ant)
 
+
 # Ano anterior
 data_inicial_ano_ant = data_inicial - relativedelta(years=1)
 data_final_ano_ant = data_final - relativedelta(years=1)
@@ -220,5 +221,6 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
