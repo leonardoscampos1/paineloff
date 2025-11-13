@@ -39,10 +39,6 @@ def atualizar_banco_local(URL_SQLITE, SQLITE_LOCAL, ETAG_FILE):
                 f.write(resposta.content)
             with open(ETAG_FILE, "w") as f:
                 f.write(etag_remota)
-
-            with st.empty():
-                st.success("✅ Banco em cache local atualizado.")
-                time.sleep(2)  # Exibe por 2 segundos
         else:
             with st.empty():
                 st.info("✅ Banco local já está atualizado.")
@@ -221,6 +217,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
