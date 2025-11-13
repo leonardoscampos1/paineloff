@@ -155,8 +155,8 @@ tabela_filtrada, faturamento_atual = calcular_faturamento(tabela_mov, vendedor_s
 # Mês anterior
 data_inicial_ant = data_inicial - relativedelta(months=1)
 data_final_ant = data_final - relativedelta(months=1)
-tabela_mes_ant, _ = carregar_dados_periodo(data_inicial_ant, data_final_ant)
-tabela_mes_ant, faturamento_mes_ant = calcular_faturamento(tabela_mes_ant, vendedor_selecionado)
+tabela_mes_ant, _, _ = carregar_dados_periodo(data_inicial_ant, data_final_ant)
+tabela_ano_ant, _, _ = carregar_dados_periodo(data_inicial_ano_ant, data_final_ano_ant)
 
 # Ano anterior
 data_inicial_ano_ant = data_inicial - relativedelta(years=1)
@@ -220,3 +220,4 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
