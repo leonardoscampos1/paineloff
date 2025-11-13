@@ -17,41 +17,6 @@ SQLITE_LOCAL = os.path.join(TEMP_DIR, "banco_temp.db")
 PARQUET_PATH = os.path.join(TEMP_DIR, "banco_cache.parquet")
 ETAG_FILE = os.path.join(TEMP_DIR, "banco_etag.txt")
 
-
-# =====================================================
-# ⚡ Função inteligente de download e cache
-# =====================================================
-@st.cache_resource
-def baixar_banco_remoto():
-    """Baixa o banco SQLite apenas se tiver sido atualizado."""
-    try:
-        # Pega o ETag (identificador de versão do arquivo remoto)
-        cabecalho = requests.head(URL_SQLITE)
-        etag_remota = cabecalho.headers.get("ETag", "")
-
-        etag_local = ""
-        if os.path.exists(ETAG_FILE):
-            with open(ETAG_FILE, "r") as f:
-                etag_local = f.read().strip()
-
-        # Só baixa se o arquivo mudou
-        if not os.path.exists(SQLITE_LOCAL) or etag_local != etag_remota:
-            st.info("🔄 Atualizando banco de dados remoto...")
-            resposta = requests.get(URL_SQLITE)
-            resposta.raise_for_status()
-            with open(SQLITE_LOCAL, "wb") as f:
-                f.write(resposta.content)
-            with open(ETAG_FILE, "w") as f:
-                f.write(etag_remota)
-        else:
-            st.success("✅ Dados atualizados.")
-
-    except Exception as e:
-        st.warning(f"⚠️ Falha ao verificar atualização: {e}")
-
-    return SQLITE_LOCAL
-
-
 # =====================================================
 # 📦 Carregamento e conversão para Parquet (rápido)
 # =====================================================
@@ -220,6 +185,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
