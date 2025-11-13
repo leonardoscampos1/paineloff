@@ -56,7 +56,7 @@ def atualizar_banco_local(URL_SQLITE, SQLITE_LOCAL, ETAG_FILE):
 @st.cache_data
 def carregar_tabelas_completas():
     """Lê o banco SQLite, junta tudo e salva em Parquet."""
-    caminho = baixar_banco_remoto()
+    caminho = atualizar_banco_local(URL_SQLITE, SQLITE_LOCAL, ETAG_FILE)
     conn = sqlite3.connect(caminho)
 
     tabela_mov = pd.read_sql("""
@@ -74,7 +74,6 @@ def carregar_tabelas_completas():
     tabela_fornec = pd.read_sql("SELECT CODFORNEC, FORNECEDOR FROM PCFORNEC", conn)
     conn.close()
 
-    # Normaliza
     for t in [tabela_mov, tabela_usur, tabela_cliente, tabela_fornec]:
         t.columns = t.columns.str.upper().str.strip()
 
@@ -87,7 +86,6 @@ def carregar_tabelas_completas():
         .merge(tabela_fornec, on='CODFORNEC', how='left')
     )
 
-    # Salva Parquet local (leitura instantânea depois)
     tabela_mov.to_parquet(PARQUET_PATH, index=False)
 
     return tabela_mov, tabela_cliente, tabela_fornec
@@ -218,6 +216,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
