@@ -18,21 +18,20 @@ SQLITE_LOCAL = os.path.join(TEMP_DIR, "banco_temp.db")
 PARQUET_PATH = os.path.join(TEMP_DIR, "banco_cache.parquet")
 ETAG_FILE = os.path.join(TEMP_DIR, "banco_etag.txt")
 
-def baixar_banco_remoto():
-    """Baixa o banco SQLite remoto apenas se houver nova versão."""
+def atualizar_banco_local(URL_SQLITE, SQLITE_LOCAL, ETAG_FILE):
+    """Verifica se o banco remoto mudou e atualiza o cache local."""
     try:
         resposta_head = requests.head(URL_SQLITE)
-        resposta_head.raise_for_status()
         etag_remota = resposta_head.headers.get("ETag", "")
-
         etag_local = ""
+
         if os.path.exists(ETAG_FILE):
             with open(ETAG_FILE, "r") as f:
                 etag_local = f.read().strip()
 
-        # Só baixa se o arquivo mudou ou não existir
+        # Só baixa se o arquivo mudou
         if not os.path.exists(SQLITE_LOCAL) or etag_local != etag_remota:
-            msg = st.info("🔄 Atualizando banco de dados remoto...")
+            st.info("🔄 Atualizando banco de dados remoto...")
             resposta = requests.get(URL_SQLITE)
             resposta.raise_for_status()
 
@@ -41,26 +40,18 @@ def baixar_banco_remoto():
             with open(ETAG_FILE, "w") as f:
                 f.write(etag_remota)
 
-            msg.empty()  # remove o "atualizando..."
-            sucesso = st.empty()
-            sucesso.success("✅ Banco em cache local atualizado.")
-            time.sleep(2)
-            sucesso.empty()  # mensagem some automaticamente
-
+            with st.empty():
+                st.success("✅ Banco em cache local atualizado.")
+                time.sleep(2)  # Exibe por 2 segundos
         else:
-            msg = st.empty()
-            msg.info("✅ Banco em cache local atualizado.")
-            time.sleep(2)
-            msg.empty()
+            with st.empty():
+                st.info("✅ Banco local já está atualizado.")
+                time.sleep(2)
 
     except Exception as e:
-        erro = st.empty()
-        erro.warning(f"⚠️ Falha ao verificar atualização: {e}")
-        time.sleep(3)
-        erro.empty()
+        st.warning(f"⚠️ Falha ao verificar atualização: {e}")
 
     return SQLITE_LOCAL
-
 
 # =====================================================
 # 📦 Carregamento e conversão para Parquet (rápido)
@@ -230,6 +221,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
