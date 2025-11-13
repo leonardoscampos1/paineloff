@@ -16,14 +16,8 @@ TEMP_DIR = tempfile.gettempdir()
 SQLITE_LOCAL = os.path.join(TEMP_DIR, "banco_temp.db")
 PARQUET_PATH = os.path.join(TEMP_DIR, "banco_cache.parquet")
 ETAG_FILE = os.path.join(TEMP_DIR, "banco_etag.txt")
-# =====================================================
-# ☁️ Atualização e cache do banco remoto
-# =====================================================
 def baixar_banco_remoto():
     """Baixa o banco SQLite remoto apenas se houver nova versão."""
-    if "banco_atualizado" not in st.session_state:
-        st.session_state.banco_atualizado = False
-
     try:
         # Faz a verificação via cabeçalho (ETag)
         resposta_head = requests.head(URL_SQLITE)
@@ -38,7 +32,7 @@ def baixar_banco_remoto():
 
         # Só baixa se o arquivo mudou ou não existir
         if not os.path.exists(SQLITE_LOCAL) or etag_local != etag_remota:
-            st.info("🔄 Atualizando banco de dados remoto...")
+            msg = st.info("🔄 Atualizando banco de dados remoto...")
             resposta = requests.get(URL_SQLITE)
             resposta.raise_for_status()
 
@@ -47,11 +41,12 @@ def baixar_banco_remoto():
             with open(ETAG_FILE, "w") as f:
                 f.write(etag_remota)
 
-            st.session_state.banco_atualizado = True
-            st.success("✅ Banco em cache local atualizado.")
+            msg.empty()  # remove o "atualizando..."
+            st.success("✅ Banco em cache local atualizado.", icon="✅")
+
         else:
-            st.session_state.banco_atualizado = True
-            st.info("✅ Banco em cache local atualizado.")
+            st.info("✅ Banco em cache local atualizado.", icon="✅")
+            st.experimental_rerun()  # força atualização leve, mensagem some depois
 
     except Exception as e:
         st.warning(f"⚠️ Falha ao verificar atualização: {e}")
@@ -226,6 +221,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
