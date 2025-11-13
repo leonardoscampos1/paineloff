@@ -8,6 +8,7 @@ import os
 from io import BytesIO
 from datetime import date
 from dateutil.relativedelta import relativedelta
+st.cache_data.clear()
 
 # =====================================================
 # 🧠 CONFIGURAÇÃO GERAL
@@ -217,6 +218,7 @@ with col2:
 
 st.divider()
 st.caption("⚡ Otimizado com cache local e Parquet — carregamento até 10x mais rápido.")
+
 
 
 
