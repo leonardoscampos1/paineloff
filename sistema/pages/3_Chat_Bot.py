@@ -39,6 +39,15 @@ def extrair_cnpj(texto):
 
 def normalizar_cnpj(cnpj):
     return re.sub(r'\D', '', str(cnpj))
+if "tabela_cliente" not in st.session_state:
+    r = requests.get(URL_SQLITE)
+    r.raise_for_status()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
+        tmp.write(r.content)
+        st.session_state.caminho_db_temp = tmp.name
+    conn = sqlite3.connect(st.session_state.caminho_db_temp)
+    st.session_state.tabela_cliente = pd.read_sql("SELECT * FROM PCCLIENT", conn)
+    conn.close()
 
 def consulta_cliente(cnpj):
     """Consulta o cliente no banco hospedado no link HBox"""
@@ -244,6 +253,7 @@ if pergunta:
                 else:
                     st.markdown("Ok, não será enviado para o cadastro.")
                 st.session_state.acao_atual = None
+
 
 
 
